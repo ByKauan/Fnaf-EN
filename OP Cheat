@@ -1,0 +1,245 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- ScreenGui (TPS)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "Tps"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
+
+-- CHÃO INVISÍVEL
+local safeFloor = Instance.new("Part")
+safeFloor.Name = "SafeZoneFloor"
+safeFloor.Size = Vector3.new(60, 1, 60)
+safeFloor.Position = Vector3.new(-104, 80, 104)
+safeFloor.Anchored = true
+safeFloor.CanCollide = true
+safeFloor.Transparency = 1
+safeFloor.BrickColor = BrickColor.new("Bright green")
+safeFloor.Material = Enum.Material.ForceField
+safeFloor.Parent = workspace
+
+-- SISTEMA DE HIGHLIGHT FUSE AUTO-DETECT
+local fuseHighlightEnabled = false
+local fuseHighlights = {}
+
+local function updateFuseHighlights()
+    -- Remove highlights antigos
+    for _, highlight in pairs(fuseHighlights) do
+        if highlight and highlight.Parent then
+            highlight:Destroy()
+        end
+    end
+    fuseHighlights = {}
+    
+    if not fuseHighlightEnabled then return end
+    
+    -- Procura tools "Fuse" no workspace
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Tool") and string.find(string.lower(obj.Name), "fuse") then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "FuseHighlight"
+            highlight.Adornee = obj
+            highlight.FillColor = Color3.fromRGB(255, 50, 50)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 50)
+            highlight.FillTransparency = 0.3
+            highlight.OutlineTransparency = 0
+            highlight.Parent = obj
+            table.insert(fuseHighlights, highlight)
+        end
+    end
+end
+
+-- ✅ DETECÇÃO AUTOMÁTICA DE FUSEs (workspace.ChildAdded)
+workspace.ChildAdded:Connect(function(child)
+    if fuseHighlightEnabled and child:IsA("Tool") and string.find(string.lower(child.Name), "fuse") then
+        wait(0.1) -- Pequeno delay pra garantir que carregou
+        updateFuseHighlights()
+        print("🔍 Nova Fuse detectada: " .. child.Name)
+    end
+end)
+
+-- Posições dos teleportes
+local positions = {
+    Salao = Vector3.new(-209, 8, 153),
+    Fusiveis = Vector3.new(-78, 4, 148),
+    Safe = Vector3.new(-104, 85, 104)
+}
+
+-- Função de teleporte
+local function teleport(posName, pos)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(pos)
+        print("✨ Teleportado para: " .. posName)
+    end
+end
+
+-- TECLAS ÚNICAS
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.Z then
+        teleport("Salão", positions.Salao)
+    elseif input.KeyCode == Enum.KeyCode.X then
+        teleport("Sala dos fusiveis", positions.Fusiveis)
+    elseif input.KeyCode == Enum.KeyCode.Q then
+        teleport("Safe", positions.Safe)
+    end
+end)
+
+-- ÍCONE PERSONALIZADO
+local toggleBtn = Instance.new("ImageButton")
+toggleBtn.Size = UDim2.new(0, 80, 0, 80)
+toggleBtn.Position = UDim2.new(0, 20, 0.5, -40)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+toggleBtn.Image = "rbxassetid://124748696722845"
+toggleBtn.ImageColor3 = Color3.new(1,1,1)
+toggleBtn.ScaleType = Enum.ScaleType.Fit
+toggleBtn.Parent = screenGui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 40)
+toggleCorner.Parent = toggleBtn
+
+-- GUI PRINCIPAL
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 420, 0, 420)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -210)
+mainFrame.BackgroundColor3 = Color3.new(0.15, 0.15, 0.2)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 20)
+mainCorner.Parent = mainFrame
+
+-- Gradiente
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(45, 45, 60))
+}
+gradient.Rotation = 45
+gradient.Parent = mainFrame
+
+-- Header
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 70)
+header.BackgroundTransparency = 1
+header.Parent = mainFrame
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 45, 0, 45)
+closeBtn.Position = UDim2.new(1, -55, 0, 12)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.new(1,1,1)
+closeBtn.TextScaled = true
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = header
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 22)
+closeCorner.Parent = closeBtn
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -70, 1, 0)
+title.Position = UDim2.new(0, 25, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🔴 TPS + FUSE TRACKER AUTO (Z/X/Q)"
+title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+-- 4 BOTÕES
+local btnPositions = {
+    {name = "Salão", pos = positions.Salao},
+    {name = "Sala dos fusiveis", pos = positions.Fusiveis},
+    {name = "Safe", pos = positions.Safe},
+    {name = "Toggle Fuse Tracker", pos = nil, special = true}
+}
+
+for i, data in ipairs(btnPositions) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.8, 0, 0, 60)
+    btn.Position = UDim2.new(0.1, 0, 0.22 + (i-1) * 0.22, 0)
+    btn.BackgroundColor3 = data.special and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(200, 50, 50)
+    
+    if data.special then
+        btn.Text = fuseHighlightEnabled and "❌ Desativar Fuse Tracker" or "✅ Ativar Fuse Tracker"
+    else
+        btn.Text = data.name
+    end
+    
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = mainFrame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 12)
+    btnCorner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        if data.special then
+            fuseHighlightEnabled = not fuseHighlightEnabled
+            updateFuseHighlights()
+            print("🔍 Fuse Tracker: " .. (fuseHighlightEnabled and "ATIVADO (AUTO)" or "DESATIVADO"))
+        else
+            teleport(data.name, data.pos)
+        end
+    end)
+end
+
+-- Toggle com IMAGEM
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+    toggleBtn.BackgroundColor3 = mainFrame.Visible and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+end)
+
+-- Fechar
+closeBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = false
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+end)
+
+-- Sistema de arrastar
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
+end)
+
+header.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+header.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Inicializa highlights
+updateFuseHighlights()
+
+print("✅ TPS + FUSE TRACKER AUTO carregado!")
+print("🔹 Z = Salão")
+print("🔹 X = Sala dos fusiveis")
+print("🔹 Q = Safe")
+print("🔍 Fuse Tracker AUTO = detecta novas Fuses instantaneamente!")

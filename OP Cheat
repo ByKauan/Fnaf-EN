@@ -65,7 +65,8 @@ end)
 local positions = {
     Salao = Vector3.new(-209, 8, 153),
     Fusiveis = Vector3.new(-78, 4, 148),
-    Safe = Vector3.new(-104, 85, 104)
+    Safe = Vector3.new(-104, 85, 104),
+    ["Puppet"] = Vector3.new(-117, 4, -10) -- ✅ NOVA POSIÇÃO
 }
 
 -- Função de teleporte
@@ -136,7 +137,7 @@ local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 45, 0, 45)
 closeBtn.Position = UDim2.new(1, -55, 0, 12)
 closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-closeBtn.Text = "✕"
+closeBtn.Text = "X"
 closeBtn.TextColor3 = Color3.new(1,1,1)
 closeBtn.TextScaled = true
 closeBtn.Font = Enum.Font.GothamBold
@@ -150,25 +151,42 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -70, 1, 0)
 title.Position = UDim2.new(0, 25, 0, 0)
 title.BackgroundTransparency = 1
-title.Text = "🔴 TPS + FUSE TRACKER AUTO (Z/X/Q)"
+title.Text = "Fnaf EN"
 title.TextColor3 = Color3.new(1,1,1)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
--- 4 BOTÕES
+-- ✅ SCROLLFRAME (NOVA ADIÇÃO)
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(0.9, 0, 0.75, 0)
+scrollFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 8
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 50)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 400) -- Tamanho do canvas
+scrollFrame.Parent = mainFrame
+
+-- UIListLayout para organizar botões automaticamente
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 10)
+listLayout.Parent = scrollFrame
+
+-- 5 BOTÕES (incluindo o novo Tp Puppet)
 local btnPositions = {
     {name = "Salão", pos = positions.Salao},
     {name = "Sala dos fusiveis", pos = positions.Fusiveis},
     {name = "Safe", pos = positions.Safe},
+    {name = "Tp Puppet", pos = positions.Puppet}, -- ✅ NOVO BOTÃO
     {name = "Toggle Fuse Tracker", pos = nil, special = true}
 }
 
 for i, data in ipairs(btnPositions) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.8, 0, 0, 60)
-    btn.Position = UDim2.new(0.1, 0, 0.22 + (i-1) * 0.22, 0)
+    btn.Size = UDim2.new(1, -20, 0, 60)
     btn.BackgroundColor3 = data.special and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(200, 50, 50)
     
     if data.special then
@@ -180,7 +198,8 @@ for i, data in ipairs(btnPositions) do
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.TextScaled = true
     btn.Font = Enum.Font.GothamBold
-    btn.Parent = mainFrame
+    btn.LayoutOrder = i
+    btn.Parent = scrollFrame
     
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 12)
@@ -190,6 +209,7 @@ for i, data in ipairs(btnPositions) do
         if data.special then
             fuseHighlightEnabled = not fuseHighlightEnabled
             updateFuseHighlights()
+            btn.Text = fuseHighlightEnabled and "❌ Desativar Fuse Tracker" or "✅ Ativar Fuse Tracker"
             print("🔍 Fuse Tracker: " .. (fuseHighlightEnabled and "ATIVADO (AUTO)" or "DESATIVADO"))
         else
             teleport(data.name, data.pos)
@@ -237,9 +257,3 @@ end)
 
 -- Inicializa highlights
 updateFuseHighlights()
-
-print("✅ TPS + FUSE TRACKER AUTO carregado!")
-print("🔹 Z = Salão")
-print("🔹 X = Sala dos fusiveis")
-print("🔹 Q = Safe")
-print("🔍 Fuse Tracker AUTO = detecta novas Fuses instantaneamente!")

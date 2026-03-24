@@ -190,7 +190,7 @@ for i, data in ipairs(btnPositions) do
     btn.BackgroundColor3 = data.special and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(200, 50, 50)
     
     if data.special then
-        btn.Text = fuseHighlightEnabled and "❌ Desativar Fuse Tracker" or "✅ Ativar Fuse Tracker"
+        btn.Text = fuseHighlightEnabled and "Desativar Fuse Esp" or "Ativar Fuse Esp"
     else
         btn.Text = data.name
     end
@@ -209,7 +209,7 @@ for i, data in ipairs(btnPositions) do
         if data.special then
             fuseHighlightEnabled = not fuseHighlightEnabled
             updateFuseHighlights()
-            btn.Text = fuseHighlightEnabled and "❌ Desativar Fuse Tracker" or "✅ Ativar Fuse Tracker"
+            btn.Text = fuseHighlightEnabled and "Desativar Fuse Esp" or "Ativar Fuse Esp"
             print("🔍 Fuse Tracker: " .. (fuseHighlightEnabled and "ATIVADO (AUTO)" or "DESATIVADO"))
         else
             teleport(data.name, data.pos)

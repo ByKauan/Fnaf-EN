@@ -25,6 +25,49 @@ safeFloor.Parent = workspace
 local fuseHighlightEnabled = false
 local fuseHighlights = {}
 
+-- ✅ SISTEMA DE HIGHLIGHT ANIMATRONICS
+local animatronicHighlightEnabled = false
+local animatronicHighlights = {}
+
+local function updateAnimatronicHighlights()
+    -- Remove highlights antigos
+    for _, highlight in pairs(animatronicHighlights) do
+        if highlight and highlight.Parent then
+            highlight:Destroy()
+        end
+    end
+    animatronicHighlights = {}
+    
+    if not animatronicHighlightEnabled then return end
+    
+    -- Procura animatronics (nomes comuns em FNAF)
+    local animatronicNames = {"freddy", "bonnie", "chica", "foxy", "puppet", "golden", "animatronic", "animatron"}
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") then
+            local found = false
+            for _, name in pairs(animatronicNames) do
+                if string.find(string.lower(obj.Name), name) then
+                    found = true
+                    break
+                end
+            end
+            
+            if found then
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "AnimatronicHighlight"
+                highlight.Adornee = obj
+                highlight.FillColor = Color3.fromRGB(255, 100, 100)
+                highlight.OutlineColor = Color3.fromRGB(255, 50, 50)
+                highlight.FillTransparency = 0.4
+                highlight.OutlineTransparency = 0
+                highlight.Parent = obj
+                table.insert(animatronicHighlights, highlight)
+            end
+        end
+    end
+end
+
 local function updateFuseHighlights()
     -- Remove highlights antigos
     for _, highlight in pairs(fuseHighlights) do
@@ -52,21 +95,63 @@ local function updateFuseHighlights()
     end
 end
 
--- ✅ DETECÇÃO AUTOMÁTICA DE FUSEs (workspace.ChildAdded)
-workspace.ChildAdded:Connect(function(child)
+-- ✅ DETECÇÃO AUTOMÁTICA DE FUSEs E ANIMATRONICS
+workspace.DescendantAdded:Connect(function(child)
     if fuseHighlightEnabled and child:IsA("Tool") and string.find(string.lower(child.Name), "fuse") then
-        wait(0.1) -- Pequeno delay pra garantir que carregou
+        wait(0.1)
         updateFuseHighlights()
         print("🔍 Nova Fuse detectada: " .. child.Name)
     end
+    
+    if animatronicHighlightEnabled and child:IsA("Model") and child:FindFirstChild("Humanoid") then
+        local animatronicNames = {"freddy", "bonnie", "chica", "foxy", "puppet", "golden", "animatronic"}
+        for _, name in pairs(animatronicNames) do
+            if string.find(string.lower(child.Name), name) then
+                wait(0.1)
+                updateAnimatronicHighlights()
+                print("🎭 Novo Animatronic detectado: " .. child.Name)
+                break
+            end
+        end
+    end
 end)
+
+-- ✅ FUNÇÃO TP FUSE MAIS PRÓXIMO
+local function teleportToNearestFuse()
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        print("❌ Personagem não encontrado!")
+        return
+    end
+    
+    local playerPos = player.Character.HumanoidRootPart.Position
+    local nearestFuse = nil
+    local nearestDistance = math.huge
+    
+    -- Procura todas as Fuses
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Tool") and string.find(string.lower(obj.Name), "fuse") then
+            local distance = (obj:GetPivot().Position - playerPos).Magnitude
+            if distance < nearestDistance then
+                nearestDistance = distance
+                nearestFuse = obj
+            end
+        end
+    end
+    
+    if nearestFuse then
+        player.Character.HumanoidRootPart.CFrame = nearestFuse:GetPivot()
+        print("✨ Teleportado para Fuse mais próxima (" .. nearestDistance .. " studs): " .. nearestFuse.Name)
+    else
+        print("❌ Nenhuma Fuse encontrada no workspace!")
+    end
+end
 
 -- Posições dos teleportes
 local positions = {
     Salao = Vector3.new(-209, 8, 153),
     Fusiveis = Vector3.new(-78, 4, 148),
     Safe = Vector3.new(-104, 85, 104),
-    ["Puppet"] = Vector3.new(-117, 4, -10) -- ✅ NOVA POSIÇÃO
+    ["Puppet"] = Vector3.new(-117, 4, -10)
 }
 
 -- Função de teleporte
@@ -77,7 +162,7 @@ local function teleport(posName, pos)
     end
 end
 
--- TECLAS ÚNICAS
+-- TECLAS ÚNICAS (mantidas)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
@@ -87,6 +172,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         teleport("Sala dos fusiveis", positions.Fusiveis)
     elseif input.KeyCode == Enum.KeyCode.Q then
         teleport("Safe", positions.Safe)
+    elseif input.KeyCode == Enum.KeyCode.E then
+        teleportToNearestFuse()
     end
 end)
 
@@ -137,7 +224,7 @@ local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 45, 0, 45)
 closeBtn.Position = UDim2.new(1, -55, 0, 12)
 closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-closeBtn.Text = "X"
+closeBtn.Text = "-"
 closeBtn.TextColor3 = Color3.new(1,1,1)
 closeBtn.TextScaled = true
 closeBtn.Font = Enum.Font.GothamBold
@@ -158,7 +245,7 @@ title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
--- ✅ SCROLLFRAME (NOVA ADIÇÃO)
+-- SCROLLFRAME
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(0.9, 0, 0.75, 0)
 scrollFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
@@ -166,32 +253,40 @@ scrollFrame.BackgroundTransparency = 1
 scrollFrame.BorderSizePixel = 0
 scrollFrame.ScrollBarThickness = 8
 scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 50)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 400) -- Tamanho do canvas
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 500) -- ✅ Aumentado para caber novos botões
 scrollFrame.Parent = mainFrame
 
--- UIListLayout para organizar botões automaticamente
 local listLayout = Instance.new("UIListLayout")
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 10)
 listLayout.Parent = scrollFrame
 
--- 5 BOTÕES (incluindo o novo Tp Puppet)
+-- ✅ 6 BOTÕES (adicionados Tp Fuse e Toggle Animatronics)
 local btnPositions = {
     {name = "Salão", pos = positions.Salao},
     {name = "Sala dos fusiveis", pos = positions.Fusiveis},
     {name = "Safe", pos = positions.Safe},
-    {name = "Tp Puppet", pos = positions.Puppet}, -- ✅ NOVO BOTÃO
-    {name = "Toggle Fuse Tracker", pos = nil, special = true}
+    {name = "Tp Puppet", pos = positions.Puppet},
+    {name = "Tp Fuse", pos = nil, special = "fuse"}, -- ✅ NOVO: TP Fuse mais próximo
+    {name = "Toggle Fuse Tracker", pos = nil, special = true},
+    {name = "Toggle Animatronics", pos = nil, special = "animatronics"} -- ✅ NOVO: Toggle Highlights Animatronics
 }
 
 for i, data in ipairs(btnPositions) do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 60)
-    btn.BackgroundColor3 = data.special and Color3.fromRGB(255, 100, 100) or Color3.fromRGB(200, 50, 50)
     
-    if data.special then
+    if data.special == "fuse" then
+        btn.BackgroundColor3 = Color3.fromRGB(50, 200, 255)
+        btn.Text = "Tp Fuse Mais Próxima"
+    elseif data.special == "animatronics" then
+        btn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        btn.Text = animatronicHighlightEnabled and "Desativar Animatronics Esp" or "Ativar Animatronics Esp"
+    elseif data.special then
+        btn.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
         btn.Text = fuseHighlightEnabled and "Desativar Fuse Esp" or "Ativar Fuse Esp"
     else
+        btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         btn.Text = data.name
     end
     
@@ -206,11 +301,18 @@ for i, data in ipairs(btnPositions) do
     btnCorner.Parent = btn
     
     btn.MouseButton1Click:Connect(function()
-        if data.special then
+        if data.special == "fuse" then
+            teleportToNearestFuse()
+        elseif data.special == "animatronics" then
+            animatronicHighlightEnabled = not animatronicHighlightEnabled
+            updateAnimatronicHighlights()
+            btn.Text = animatronicHighlightEnabled and "Desativar Animatronics Esp" or "Ativar Animatronics Esp"
+            print("Animatronics Tracker: " .. (animatronicHighlightEnabled and "ATIVADO" or "DESATIVADO"))
+        elseif data.special then
             fuseHighlightEnabled = not fuseHighlightEnabled
             updateFuseHighlights()
             btn.Text = fuseHighlightEnabled and "Desativar Fuse Esp" or "Ativar Fuse Esp"
-            print("🔍 Fuse Tracker: " .. (fuseHighlightEnabled and "ATIVADO (AUTO)" or "DESATIVADO"))
+            print("Fuse Tracker: " .. (fuseHighlightEnabled and "ATIVADO (AUTO)" or "DESATIVADO"))
         else
             teleport(data.name, data.pos)
         end
@@ -257,3 +359,4 @@ end)
 
 -- Inicializa highlights
 updateFuseHighlights()
+updateAnimatronicHighlights()
